@@ -131,7 +131,6 @@ def main():
     config["long_obs_hist_interval"] = 20
     config["render_traj_cutoff"] = 100
     config["tag_on_oob"] = True
-    config["arena_buffer_frac"] = 0.4
 
 
     

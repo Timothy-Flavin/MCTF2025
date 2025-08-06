@@ -13,7 +13,7 @@ from pyquaticus.config import ACTION_MAP
 config_dict = {}
 config_dict["max_time"] = 600.0
 config_dict["max_score"] = 100
-config_dict["sim_speedup_factor"] = 8
+config_dict["sim_speedup_factor"] = 16
 
 env = pyquaticus_v0.PyQuaticusEnv(team_size=2, config_dict=config_dict,render_mode='human')
 term_g = {0:False,1:False}
@@ -21,17 +21,17 @@ truncated_g = {0:False,1:False}
 term = term_g
 trunc = truncated_g
 
-obs, info = env.reset()
+obs, info = env.reset(return_info=True)
 
 temp_captures = env.state["captures"]
 temp_grabs = env.state["grabs"]
 temp_tags = env.state["tags"]
 
-r_one = BaseAttacker('agent_2', env, mode='competition_easy')
-r_two = BaseDefender('agent_3', env, mode='competition_easy')
+r_one = BaseAttacker('agent_2', Team.RED_TEAM, env, mode='competition_easy')
+r_two = BaseDefender('agent_3', Team.RED_TEAM, env, mode='competition_easy')
 
-b_one = BaseDefender('agent_0', env, mode='competition_easy')
-b_two = BaseAttacker('agent_1', env, mode='competition_easy')
+b_one = BaseDefender('agent_0', Team.BLUE_TEAM, env, mode='competition_easy')
+b_two = BaseAttacker('agent_1', Team.BLUE_TEAM, env, mode='competition_easy')
 step = 0
 while True:
 

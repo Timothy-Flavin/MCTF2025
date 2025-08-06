@@ -1,0 +1,1 @@
+conda activate /home/tim/Desktop/myRL/mctf/pyquaticus/env-full

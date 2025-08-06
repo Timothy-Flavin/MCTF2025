@@ -38,7 +38,7 @@ from ray import air, tune
 from ray.rllib.algorithms.ppo import PPOTF2Policy, PPOConfig
 from ray.rllib.policy.policy import PolicySpec
 import os
-from pyquaticus.base_policies.base_policy_wrappers import DefendGen, AttackGen
+from pyquaticus.base_policies.base_policies import DefendGen, AttackGen
 from pyquaticus.base_policies.base_attack import BaseAttacker
 from pyquaticus.base_policies.base_defend import BaseDefender
 from pyquaticus.base_policies.base_combined import Heuristic_CTF_Agent
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     parser.add_argument('policy_one', help='Please enter the path to the model you would like to load in Ex. ./ray_test/checkpoint_00001/policies/agent-0-policy')
     parser.add_argument('policy_two', help='Please enter the path to the model you would like to load in Ex. ./ray_test/checkpoint_00001/policies/agent-1-policy') 
 
-    reward_config = {}
+    reward_config = {'agent_0':rew.sparse, 'agent_1':rew.sparse}
     args = parser.parse_args()
     config_dict = config_dict_std
     config_dict['sim_speedup_factor'] = 8

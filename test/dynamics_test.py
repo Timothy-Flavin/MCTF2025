@@ -183,9 +183,8 @@ def main():
     config["render_agent_ids"] = True
     config["render_traj_mode"] = "traj"
     config["render_traj_cutoff"] = 100
-    # config["arena_buffer_frac"] = 0.25
-    # config["render_fps"] = 10
-    # config["dynamics"] = ["heron", "heron"]
+    config["dynamics"] = ["surveyor", "surveyor"]#si
+    config["render_saving"] = False
     # config["lidar_obs"] = True
     # config["render_lidar_mode"] = "detection"
     # config["lidar_range"] = 20
@@ -196,9 +195,10 @@ def main():
     # config["long_hist_interval"] = 20
     # config["render_traj_cutoff"] = 300
     config["obstacles"] = {
-        # "circle": [(4*2, (6*2, 5*2))],
-        # "polygon": [((70, 10), (85, 21), (83, 51), (72, 35))]
+        #"circle": [(4*2, (6*2, 5*2))],
+        "polygon": [((70, 10), (85, 21), (83, 51), (72, 35))]
     }
+    config["agent_radius"] = [2, 2]
 
     # PyQuaticusEnv is a Parallel Petting Zoo Environment
     env = pyquaticus_v0.PyQuaticusEnv(

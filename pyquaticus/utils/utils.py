@@ -244,7 +244,7 @@ def closest_point_on_line(A, B, P):
     elif proj_dist >= len_AB:
         return B
     else:
-        return np.array([A[0] + (unit_AB[0] * proj_dist), A[1] + (unit_AB[1] * proj_dist)])
+        return [A[0] + (unit_AB[0] * proj_dist), A[1] + (unit_AB[1] * proj_dist)]
 
 def vector_to(A, B, unit=False):
     """
@@ -335,9 +335,9 @@ def wrap_mercator_x(wm, x_only:bool = False) -> np.ndarray:
     (will not exceed a difference in longitude of 180 degrees).
     """
     if x_only:
-        wm = np.array(wm).reshape(-1, 1)
+        wm = np.asarray(wm).reshape(-1, 1)
     else:
-        wm = np.array(wm).reshape(-1, 2)
+        wm = np.asarray(wm).reshape(-1, 2)
 
     over = wm[:, 0] > EPSG_3857_EXT_X
     while np.any(over):
@@ -363,9 +363,9 @@ def wrap_mercator_x_dist(wm, x_only:bool = False) -> np.ndarray:
     therefore will be normalized to [0, 2*EPSG_3857_EXT_X].
     """
     if x_only:
-        wm = np.array(wm, dtype=float).reshape(-1, 1)
+        wm = np.asarray(wm, dtype=float).reshape(-1, 1)
     else:
-        wm = np.array(wm, dtype=float).reshape(-1, 2)
+        wm = np.asarray(wm, dtype=float).reshape(-1, 2)
 
     under = np.where(wm[:, 0] < 0)[0]
     wm[under, 0] += 2*EPSG_3857_EXT_X
@@ -507,37 +507,3 @@ def closest_line(
         closest_line = closest_line.item()
 
     return closest_line
-
-def rigid_transform(pos, origin, rot_matrix):
-    """
-    Translate and rotate position vector(s) based on origin and rotation matrix.
-    pos can be a single point or multiple points.
-    """
-    return (np.asarray(pos) - np.asarray(origin)) @ np.asarray(rot_matrix).T
-
-def check_segment_intersections(segments, query_segment):
-    p = segments[:, 0]           # (N, 2)
-    r = segments[:, 1] - p       # (N, 2)
-
-    q = query_segment[0]         # (2,)
-    s = query_segment[1] - q     # (2,)
-
-    r_cross_s = np.cross(r, s)   # (N,)
-    q_minus_p = q - p            # (N, 2)
-
-    t = np.cross(q_minus_p, s) / r_cross_s
-    u = np.cross(q_minus_p, r) / r_cross_s
-
-    # Exclude parallel segments (r_cross_s == 0)
-    valid = ~np.isclose(r_cross_s, 0)
-
-    # Only keep those where the intersection occurs within both segments
-    intersecting = valid & (t >= 0) & (t <= 1) & (u >= 0) & (u <= 1)
-
-    return np.where(intersecting)[0]
-
-def dist(A, B):
-    return np.linalg.norm(B - A)
-
-def cross2d(A, B):
-    return A[0]*B[1] - A[1]*B[0] 

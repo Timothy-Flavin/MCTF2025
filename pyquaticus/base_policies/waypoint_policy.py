@@ -19,38 +19,30 @@
 
 # SPDX-License-Identifier: BSD-3-Clause
 
-from functools import partial
-from multiprocessing.dummy import Pool
-from multiprocessing.pool import ThreadPool
-from typing import Optional
-
 import numpy as np
 
-from pyquaticus.base_policies.base_policy import BaseAgentPolicy
+from pyquaticus.base_policies.base import BaseAgentPolicy
+from pyquaticus.envs.pyquaticus import Team
+from pyquaticus.envs.pyquaticus import PyQuaticusEnv
+from pyquaticus.base_policies.rrt.utils import Point
 from pyquaticus.base_policies.rrt.rrt_star import rrt_star
-<<<<<<< HEAD
-from pyquaticus.base_policies.rrt.utils import (
-    Point,
-    get_ungrouped_seglist,
-    intersect,
-    intersect_circles,
-)
-=======
-from pyquaticus.base_policies.rrt.utils import (Point, get_ungrouped_seglist,
-                                                intersect, intersect_circles)
->>>>>>> main
-from pyquaticus.base_policies.utils import global_rect_to_abs_bearing
-from pyquaticus.envs.pyquaticus import PyQuaticusEnv, Team
-from pyquaticus.structs import CircleObstacle, PolygonObstacle
-from pyquaticus.utils.utils import angle180
+from pyquaticus.structs import PolygonObstacle, CircleObstacle
+
+
+from typing import Optional
+
+from multiprocessing.dummy import Pool
+from multiprocessing.pool import ThreadPool
+from multiprocessing import TimeoutError
 
 
 class WaypointPolicy(BaseAgentPolicy):
-    """Base policy that drives to waypoints, avoiding obstacles using RRT*"""
+    """This is a Policy class that contains logic for capturing the flag."""
 
     def __init__(
         self,
         agent_id: str,
+        team: Team,
         env: PyQuaticusEnv,
         continuous: bool = False,
         capture_radius: float = 1,
@@ -58,17 +50,11 @@ class WaypointPolicy(BaseAgentPolicy):
         avoid_radius: float = 2,
         wps: list[np.ndarray] = [],
     ):
-        super().__init__(agent_id, env)
-
-        self.state_normalizer = env.global_state_normalizer
-
-        self.state_normalizer = env.global_state_normalizer
+        super().__init__(agent_id, team, env)
 
         self.capture_radius = capture_radius
 
         self.slip_radius = slip_radius
-
-        self.max_speed = env.max_speeds[env.players[self.id].idx]
 
         self.cur_dist = None
 
@@ -84,6 +70,9 @@ class WaypointPolicy(BaseAgentPolicy):
 
         self.tree = None
 
+        if team not in Team:
+            raise AttributeError(f"Invalid team {team}")
+
     def get_env_geom(self, env: PyQuaticusEnv):
         poly_obstacles = []
         circle_obstacles = []
@@ -96,10 +85,6 @@ class WaypointPolicy(BaseAgentPolicy):
                 circle = (*obstacle.center_point, obstacle.radius)
                 circle_obstacles.append(circle)
 
-        # add own flag as obstacle to avoid
-        circle = (*env.flag_homes[self.team], env.flag_keepout_radius)
-        circle_obstacles.append(circle)
-
         self.env_bounds = np.array(((0, 0), env.env_size))
 
         if len(poly_obstacles) == 0:
@@ -109,32 +94,6 @@ class WaypointPolicy(BaseAgentPolicy):
 
         self.poly_obstacles = poly_obstacles
         self.circle_obstacles = circle_obstacles
-        if self.circle_obstacles is not None:
-            self.circles_for_intersect = np.array(circle_obstacles)
-        else:
-            self.circles_for_intersect = None
-        if poly_obstacles is not None:
-            self.ungrouped_seglist = get_ungrouped_seglist(poly_obstacles)
-        else:
-            self.ungrouped_seglist = None
-
-    def update_state(self, obs, info: dict[str, dict]) -> None:
-        global_state = info[self.id]["global_state"]
-        if not isinstance(global_state, dict):
-            global_state = self.state_normalizer.unnormalized(global_state)
-
-        self.pos = global_state[(self.id, "pos")]
-        self.is_tagged = global_state[(self.id, "is_tagged")]
-        self.heading = global_state[(self.id, "heading")]
-
-    def update_state(self, obs, info: dict[str, dict]) -> None:
-        global_state = info[self.id]["global_state"]
-        if not isinstance(global_state, dict):
-            global_state = self.state_normalizer.unnormalized(global_state)
-
-        self.pos = global_state[(self.id, "pos")]
-        self.is_tagged = global_state[(self.id, "is_tagged")]
-        self.heading = global_state[(self.id, "heading")]
 
     def compute_action(self, obs, info):
         """
@@ -167,11 +126,17 @@ class WaypointPolicy(BaseAgentPolicy):
 
         pos_err = self.wps[0] - self.pos
 
-        desired_heading = global_rect_to_abs_bearing(pos_err)
+        desired_heading = self.angle180(-1 * self.vec_to_heading(pos_err) + 90)
 
-        heading_error = angle180(desired_heading - self.heading)
+        heading_error = self.angle180(desired_heading - self.heading)
 
         if self.continuous:
+            if np.isnan(heading_error):
+                heading_error = 0
+
+            if np.abs(heading_error) < 5:
+                heading_error = 0
+
             return (desired_speed, heading_error)
 
         else:
@@ -181,6 +146,9 @@ class WaypointPolicy(BaseAgentPolicy):
                 return 14
             elif heading_error > 1:
                 return 10
+            else:
+                # Should only happen if the act_heading is somehow NAN
+                return 12
 
     def update_wps(self, pos: np.ndarray):
         """
@@ -190,37 +158,9 @@ class WaypointPolicy(BaseAgentPolicy):
         if len(self.wps) == 0:
             return
 
-        # Check if any future waypoints have an obstacle-free path
-        # If so, skip directly to the closest one to the goal
-        wps = np.array(self.wps).reshape((-1, 1, 2))
-        pos_array = np.repeat(pos.reshape((-1, 2)), len(self.wps), 0).reshape(-1, 1, 2)
-        segs = np.concatenate((pos_array, wps), axis=1)
-        clear = np.logical_not(
-            intersect(segs, self.ungrouped_seglist, radius=self.avoid_radius)
-        )
-        clear = np.logical_and(
-            clear,
-            np.logical_not(
-                intersect_circles(
-                    segs, self.circles_for_intersect, agent_radius=self.avoid_radius
-                )
-            ),
-        )
-        try:
-            last_free_wp_index = len(list(clear)) - 1 - list(clear)[::-1].index(True)
-        except ValueError:
-            # No points are obstacle-free, even the current waypoint
-            # TODO: Continue to current waypoint? Replan?
-            pass
-        else:
-            if last_free_wp_index > 0:
-                self.wps = self.wps[last_free_wp_index:]
-                self.cur_dist = None
-                return
-
         new_dist = np.linalg.norm(self.wps[0] - pos)
 
-        if (new_dist <= self.capture_radius) and clear[0]:
+        if new_dist <= self.capture_radius:
             self.wps.pop(0)
             self.cur_dist = None
 
@@ -229,7 +169,6 @@ class WaypointPolicy(BaseAgentPolicy):
             and (self.cur_dist is not None)
             and (new_dist > self.cur_dist)
             and (new_dist <= self.slip_radius)
-            and clear[0]
         ):
             self.wps.pop(0)
             self.cur_dist = None
@@ -283,9 +222,15 @@ class WaypointPolicy(BaseAgentPolicy):
 
         assert isinstance(self.plan_process, ThreadPool)
 
-        self.plan_process.apply_async(
-            rrt_star, kwds=kwargs, callback=partial(self.get_path, wp=wp)
-        )
+        try:
+            tree = self.plan_process.apply_async(rrt_star, kwds=kwargs).get(
+                timeout=timeout
+            )
+
+            self.get_path(tree, wp)
+
+        except TimeoutError:
+            print("Planning timed out.")
 
     def get_path(self, tree: list[Point], wp: np.ndarray):
         """

@@ -69,6 +69,8 @@ class ObsNormalizer:
         lower_bounds: Optional[List[float]] = None,
         shape: Optional[Tuple[int]] = None,
     ):
+        # print(key, upper_bounds, lower_bounds, shape)
+        # nput("registering stuff??????")
         """
         Registers an observation component with certain bounds and shape.
 
@@ -126,7 +128,9 @@ class ObsNormalizer:
             np.array[float32]: state where each element is normalized to [-1, 1]
         """
         if len(obs) > len(self._bounds):
-            raise ValueError(f"Got more observations than registered: {len(obs)} vs {len(self._bounds)}")
+            raise ValueError(
+                f"Got more observations than registered: {len(obs)} vs {len(self._bounds)}"
+            )
         if len(obs) != len(self._bounds):
             missing_states = set(self._bounds.keys()) - set(obs)
             raise RuntimeError(
@@ -143,7 +147,9 @@ class ObsNormalizer:
         norm_obs = np.clip((state_array - avg) / r, a_min=-1, a_max=1)
         return norm_obs.reshape(self.normalized_space.shape)
 
-    def unnormalized(self, norm_obs: np.ndarray) -> Dict[Union[str, tuple], Union[np.ndarray, float]]:
+    def unnormalized(
+        self, norm_obs: np.ndarray
+    ) -> Dict[Union[str, tuple], Union[np.ndarray, float]]:
         """
         Reverses normalization and returns dictionary version of the full observation.
 
@@ -165,7 +171,7 @@ class ObsNormalizer:
             r = (high - low) / 2.0
             assert len(low.shape) == 1
             num_entries = low.shape[0]
-            obs_slice = norm_obs[idx: idx + num_entries]
+            obs_slice = norm_obs[idx : idx + num_entries]
             new_entry = (r * obs_slice + avg).reshape(bound.low.shape)
             if num_entries == 1:
                 # unpack

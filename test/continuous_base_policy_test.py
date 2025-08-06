@@ -41,40 +41,44 @@ env = pyquaticus_v0.PyQuaticusEnv(
     team_size=2, config_dict=config_dict, render_mode="human"
 )
 
-obs, info = env.reset()
+obs, info = env.reset(return_info=True)
 
-B_one = BaseDefender(
-    "agent_1",
+R_two = BaseDefender(
+    "agent_2",
+    Team.RED_TEAM,
     env,
     mode="medium",
     continuous=True
 )
-B_zero = BaseDefender(
-    "agent_0",
-    env,
-    mode="medium",
-    continuous=True
-)
-
-R_three = WaypointPolicy(
+R_three = BaseDefender(
     "agent_3",
+    Team.RED_TEAM,
+    env,
+    mode="medium",
+    continuous=True
+)
+
+B_zero = WaypointPolicy(
+    "agent_0",
+    Team.BLUE_TEAM,
     env,
     capture_radius=4,
     slip_radius=8,
     avoid_radius=4,
     continuous=True
 )
-R_two = BaseAttacker(
-    "agent_2",
+B_one = BaseAttacker(
+    "agent_1",
+    Team.BLUE_TEAM,
     env,
     mode="nothing",
     continuous=True
 )
 
-R_three.update_state(obs, info)
+B_zero.update_state(obs, info)
 
-R_three.plan(
-    wp=env.flag_homes[Team.BLUE_TEAM], num_iters=500
+B_zero.plan(
+    wp=env.flag_homes[Team.RED_TEAM], num_iters=500
 )
 
 while True:

@@ -51,20 +51,20 @@ term_g = {'agent_0': False, 'agent_1': False}
 truncated_g = {'agent_0': False, 'agent_1': False}
 term = term_g
 trunc = truncated_g
-obs, info = env.reset()
+obs, info = env.reset(return_info=True)
 
 temp_captures = env.state["captures"]
 temp_grabs = env.state["grabs"]
 temp_tags = env.state["tags"]
 
 
-H_one = Heuristic_CTF_Agent('agent_3', env, mode="hard", continuous=True)
-H_two = Heuristic_CTF_Agent('agent_4', env, mode="hard", continuous=True)
-H_three = Heuristic_CTF_Agent('agent_5', env, mode="hard", continuous=True)
+H_one = Heuristic_CTF_Agent('agent_3', Team.RED_TEAM, env, mode="hard", continuous=True)
+H_two = Heuristic_CTF_Agent('agent_4', Team.RED_TEAM, env, mode="hard", continuous=True)
+H_three = Heuristic_CTF_Agent('agent_5', Team.RED_TEAM, env, mode="hard", continuous=True)
 
-R_one = Heuristic_CTF_Agent('agent_0', env, mode="hard", continuous=True)
-R_two = Heuristic_CTF_Agent('agent_1', env, mode="hard", continuous=True)
-R_three = Heuristic_CTF_Agent('agent_2', env, mode="hard", continuous=True)
+R_one = Heuristic_CTF_Agent('agent_0', Team.BLUE_TEAM, env, mode="hard", continuous=True)
+R_two = Heuristic_CTF_Agent('agent_1', Team.BLUE_TEAM, env, mode="hard", continuous=True)
+R_three = Heuristic_CTF_Agent('agent_2', Team.BLUE_TEAM, env, mode="hard", continuous=True)
 
 step = 0
 while True:
